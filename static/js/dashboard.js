@@ -3,30 +3,32 @@
    Dark/Light Theme + Chart.js + Multi-page + Glassmorphism
 ───────────────────────────────────────────────────────────────────────────── */
 
-// ── Waste Images (Wikimedia Commons — public domain / CC) ────────────────────
+// ── Waste Images (LOCAL — folder: static/images/waste/) ──────────────────────
 const WASTE_IMAGES = {
   full: [
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Garbage_piled_up_on_the_streets_of_a_city.jpg/640px-Garbage_piled_up_on_the_streets_of_a_city.jpg", src: "https://commons.wikimedia.org/wiki/File:Garbage_piled_up_on_the_streets_of_a_city.jpg", caption: "Tumpukan sampah penuh" },
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Jakarta_garbage.jpg/640px-Jakarta_garbage.jpg", src: "https://commons.wikimedia.org/wiki/File:Jakarta_garbage.jpg", caption: "Sampah menumpuk — Jakarta" },
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Waste_dumped_on_a_road_in_India.jpg/640px-Waste_dumped_on_a_road_in_India.jpg", src: "https://commons.wikimedia.org/wiki/File:Waste_dumped_on_a_road_in_India.jpg", caption: "Sampah di tepi jalan" },
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Rubbish_in_East_Jakarta.jpg/640px-Rubbish_in_East_Jakarta.jpg", src: "https://commons.wikimedia.org/wiki/File:Rubbish_in_East_Jakarta.jpg", caption: "Penuh — Jakarta Timur" },
+    { url: "/static/images/waste/full/full_01.jpg", src: "", caption: "Sampah penuh — Foto 1" },
+    { url: "/static/images/waste/full/full_02.jpg", src: "", caption: "Sampah penuh — Foto 2" },
+    { url: "/static/images/waste/full/full_03.jpg", src: "", caption: "Sampah penuh — Foto 3" },
+    { url: "/static/images/waste/full/full_04.jpg", src: "", caption: "Sampah penuh — Foto 4" },
   ],
   scattered: [
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Litter_on_the_ground.jpg/640px-Litter_on_the_ground.jpg", src: "https://commons.wikimedia.org/wiki/File:Litter_on_the_ground.jpg", caption: "Sampah berserakan" },
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Litter_-_San_Gabriel_River%2C_California.jpg/640px-Litter_-_San_Gabriel_River%2C_California.jpg", src: "https://commons.wikimedia.org/wiki/File:Litter_-_San_Gabriel_River,_California.jpg", caption: "Berserakan di tepi sungai" },
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/LitteringHighway.jpg/640px-LitteringHighway.jpg", src: "https://commons.wikimedia.org/wiki/File:LitteringHighway.jpg", caption: "Sampah di jalan raya" },
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Plastic_waste_in_Asia.jpg/640px-Plastic_waste_in_Asia.jpg", src: "https://commons.wikimedia.org/wiki/File:Plastic_waste_in_Asia.jpg", caption: "Plastik berserakan" },
+    { url: "/static/images/waste/scattered/scattered_01.jpg", src: "", caption: "Berserakan — Foto 1" },
+    { url: "/static/images/waste/scattered/scattered_02.jpg", src: "", caption: "Berserakan — Foto 2" },
+    { url: "/static/images/waste/scattered/scattered_03.jpg", src: "", caption: "Berserakan — Foto 3" },
+    { url: "/static/images/waste/scattered/scattered_04.jpg", src: "", caption: "Berserakan — Foto 4" },
   ],
   clean: [
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Clean_street_Singapore.jpg/640px-Clean_street_Singapore.jpg", src: "https://commons.wikimedia.org/wiki/File:Clean_street_Singapore.jpg", caption: "Jalan bersih — Singapura" },
-    { url: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Clean_alley_Kyoto_Japan.jpg/640px-Clean_alley_Kyoto_Japan.jpg", src: "https://commons.wikimedia.org/wiki/File:Clean_alley_Kyoto_Japan.jpg", caption: "Gang bersih — Kyoto" },
+    { url: "/static/images/waste/clean/clean_01.jpg", src: "", caption: "Bersih — Foto 1" },
+    { url: "/static/images/waste/clean/clean_02.jpg", src: "", caption: "Bersih — Foto 2" },
+    { url: "/static/images/waste/clean/clean_03.jpg", src: "", caption: "Bersih — Foto 3" },
+    { url: "/static/images/waste/clean/clean_04.jpg", src: "", caption: "Bersih — Foto 4" },
   ],
 };
 
 const FALLBACK = {
-  full:      "https://placehold.co/400x300/1a0a0a/ef4444?text=Full+Load",
-  scattered: "https://placehold.co/400x300/1a1400/f59e0b?text=Berserakan",
-  clean:     "https://placehold.co/400x300/0a1a0f/10b981?text=Bersih",
+  full:      "/static/images/waste/full/full_01.jpg",
+  scattered: "/static/images/waste/scattered/scattered_01.jpg",
+  clean:     "/static/images/waste/clean/clean_01.jpg",
 };
 
 function getImg(status, idx = 0) {
@@ -831,6 +833,277 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PETUGAS PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadPetugasPage() {
+  await loadOfficers();
+  await loadWALogs();
+}
+
+async function loadOfficers() {
+  try {
+    const res = await fetch('/api/officers');
+    const data = await res.json();
+
+    const el = (id) => document.getElementById(id);
+    if (el('petugas-active'))  el('petugas-active').textContent  = data.active;
+    if (el('petugas-inactive')) el('petugas-inactive').textContent = data.inactive;
+    if (el('petugas-total'))   el('petugas-total').textContent    = data.total;
+    if (el('petugas-count-badge')) el('petugas-count-badge').textContent = `${data.total} Petugas`;
+
+    const tbody = el('petugas-body');
+    if (!tbody) return;
+
+    if (!data.officers || data.officers.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada data petugas</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.officers.map((o, i) => {
+      const statusBadge = o.is_active
+        ? '<span class="status-badge status-normal">Aktif</span>'
+        : '<span class="status-badge status-scattered">Non-Aktif</span>';
+      const phoneFormatted = formatPhone(o.phone);
+      const initials = o.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+      return `<tr>
+        <td>${i + 1}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="officer-avatar">${initials}</div>
+            <div>
+              <div style="font-weight:600;color:var(--text)">${o.name}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${o.position}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <a href="https://wa.me/${o.phone}" target="_blank"
+             style="color:#25D366;text-decoration:none;font-weight:500;display:flex;align-items:center;gap:4px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            </svg>
+            ${phoneFormatted}
+          </a>
+        </td>
+        <td>${o.kecamatan || '—'}</td>
+        <td><span class="position-badge">${o.position}</span></td>
+        <td>${statusBadge}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn-icon btn-wa-small" title="Kirim Alert WA" onclick="openWAModal(${o.id}, '${o.name}', '${o.phone}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
+            </button>
+            <button class="btn-icon btn-edit" title="Edit" onclick="editOfficer(${o.id})">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-icon btn-delete" title="Hapus" onclick="deleteOfficer(${o.id}, '${o.name}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+  } catch (err) {
+    console.error('Load officers error:', err);
+  }
+}
+
+async function loadWALogs() {
+  try {
+    const res  = await fetch('/api/wa-alert/logs');
+    const data = await res.json();
+
+    const logCount = document.getElementById('wa-log-count');
+    if (logCount) logCount.textContent = `${data.count} Terkirim`;
+
+    const tbody = document.getElementById('wa-log-body');
+    if (!tbody) return;
+
+    if (!data.logs || data.logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada riwayat alert</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.logs.map(log => {
+      const time = log.sent_at ? new Date(log.sent_at).toLocaleString('id-ID') : '—';
+      return `<tr>
+        <td style="white-space:nowrap;font-size:12px">${time}</td>
+        <td style="font-weight:600">${log.officer_name || '—'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:12px">${formatPhone(log.phone)}</td>
+        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${log.message}</td>
+        <td><span class="status-badge status-normal">Terkirim</span></td>
+      </tr>`;
+    }).join('');
+
+  } catch (err) {
+    console.error('Load WA logs error:', err);
+  }
+}
+
+function formatPhone(phone) {
+  if (!phone) return '—';
+  // Format: +62 812-3456-7801
+  const clean = phone.replace(/\D/g, '');
+  if (clean.length >= 12) {
+    return `+${clean.slice(0,2)} ${clean.slice(2,5)}-${clean.slice(5,9)}-${clean.slice(9)}`;
+  }
+  return phone;
+}
+
+// ── Modal handlers ──
+
+function openAddPetugasModal() {
+  document.getElementById('petugas-modal-title').textContent = '➕ Tambah Petugas Baru';
+  document.getElementById('pf-id').value = '';
+  document.getElementById('pf-name').value = '';
+  document.getElementById('pf-phone').value = '';
+  document.getElementById('pf-kec').value = '';
+  document.getElementById('pf-position').value = 'Petugas Lapangan';
+  document.getElementById('petugas-modal').classList.add('active');
+}
+
+function closePetugasModal() {
+  document.getElementById('petugas-modal').classList.remove('active');
+}
+
+async function editOfficer(id) {
+  try {
+    const res = await fetch('/api/officers');
+    const data = await res.json();
+    const officer = data.officers.find(o => o.id === id);
+    if (!officer) return;
+
+    document.getElementById('petugas-modal-title').textContent = '✏️ Edit Petugas';
+    document.getElementById('pf-id').value = officer.id;
+    document.getElementById('pf-name').value = officer.name;
+    document.getElementById('pf-phone').value = officer.phone;
+    document.getElementById('pf-kec').value = officer.kecamatan || '';
+    document.getElementById('pf-position').value = officer.position;
+    document.getElementById('petugas-modal').classList.add('active');
+  } catch (err) {
+    console.error('Edit officer error:', err);
+  }
+}
+
+async function savePetugas(e) {
+  e.preventDefault();
+  const id       = document.getElementById('pf-id').value;
+  const name     = document.getElementById('pf-name').value.trim();
+  const phone    = document.getElementById('pf-phone').value.trim();
+  const kecamatan = document.getElementById('pf-kec').value.trim();
+  const position = document.getElementById('pf-position').value;
+
+  if (!name || !phone) { alert('Nama dan No. WA wajib diisi!'); return; }
+
+  try {
+    if (id) {
+      // Update
+      await fetch(`/api/officers/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, phone, kecamatan, position})
+      });
+    } else {
+      // Create
+      await fetch('/api/officers', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, phone, kecamatan, position})
+      });
+    }
+    closePetugasModal();
+    await loadOfficers();
+  } catch (err) {
+    console.error('Save officer error:', err);
+    alert('Gagal menyimpan data petugas');
+  }
+}
+
+async function deleteOfficer(id, name) {
+  if (!confirm(`Hapus petugas "${name}"?`)) return;
+  try {
+    await fetch(`/api/officers/${id}`, {method: 'DELETE'});
+    await loadOfficers();
+  } catch (err) {
+    console.error('Delete officer error:', err);
+  }
+}
+
+// ── WA Alert ──
+
+function openWAModal(id, name, phone) {
+  document.getElementById('wa-officer-id').value = id;
+  document.getElementById('wa-officer-phone').value = phone;
+  document.getElementById('wa-modal-sub').textContent = `Kirim pesan ke ${name} (${formatPhone(phone)})`;
+
+  const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+  document.getElementById('wa-message').value =
+    `🚨 *ALERT SIGAP LAMPUNG*\n\nTerdeteksi tumpukan sampah kritis di area Anda.\nMohon segera ditindaklanjuti.\n\n📍 Lokasi: Area ${name}\n⏰ Waktu: ${now} WIB\n📊 Status: FULL LOAD\n\n_Dikirim otomatis oleh Sistem SIGAP Lampung_`;
+
+  document.getElementById('wa-modal').classList.add('active');
+}
+
+function closeWAModal() {
+  document.getElementById('wa-modal').classList.remove('active');
+}
+
+function sendWAAlert() {
+  const phone   = document.getElementById('wa-officer-phone').value;
+  const message = document.getElementById('wa-message').value;
+  const waURL   = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  window.open(waURL, '_blank');
+}
+
+async function logWAAlert() {
+  const officerId = document.getElementById('wa-officer-id').value;
+  const phone     = document.getElementById('wa-officer-phone').value;
+  const message   = document.getElementById('wa-message').value;
+
+  try {
+    await fetch('/api/wa-alert', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({officer_id: parseInt(officerId), phone, message})
+    });
+    closeWAModal();
+    await loadWALogs();
+    alert('✅ Alert berhasil dicatat!');
+  } catch (err) {
+    console.error('Log WA alert error:', err);
+  }
+}
+
+async function sendBulkWAAlert() {
+  if (!confirm('Kirim alert WhatsApp ke SEMUA petugas aktif?')) return;
+  try {
+    const res  = await fetch('/api/officers');
+    const data = await res.json();
+    const active = data.officers.filter(o => o.is_active);
+    if (active.length === 0) { alert('Tidak ada petugas aktif'); return; }
+
+    const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    const msg = `🚨 *ALERT SIGAP LAMPUNG*\n\nTerdeteksi kondisi sampah kritis di beberapa titik.\nMohon segera ditindaklanjuti.\n\n⏰ Waktu: ${now} WIB\n\n_Dikirim otomatis oleh Sistem SIGAP Lampung_`;
+
+    for (const o of active) {
+      await fetch('/api/wa-alert', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({officer_id: o.id, phone: o.phone, message: msg})
+      });
+    }
+    await loadWALogs();
+    alert(`✅ Alert berhasil dikirim ke ${active.length} petugas!`);
+  } catch (err) {
+    console.error('Bulk WA error:', err);
+  }
+}
+
+
 // Make functions globally accessible
 window.openModal = openModal;
 window.closeModal = closeModal;
@@ -839,3 +1112,14 @@ window.toggleSidebar = toggleSidebar;
 window.loadCCTVPage = loadCCTVPage;
 window.loadPetaPage = loadPetaPage;
 window.loadLaporanPage = loadLaporanPage;
+window.loadPetugasPage = loadPetugasPage;
+window.openAddPetugasModal = openAddPetugasModal;
+window.closePetugasModal = closePetugasModal;
+window.editOfficer = editOfficer;
+window.savePetugas = savePetugas;
+window.deleteOfficer = deleteOfficer;
+window.openWAModal = openWAModal;
+window.closeWAModal = closeWAModal;
+window.sendWAAlert = sendWAAlert;
+window.logWAAlert = logWAAlert;
+window.sendBulkWAAlert = sendBulkWAAlert;

@@ -1,8 +1,8 @@
 """
-SIGAP Lampung v3.0 — Backend Flask (Multi-page + Auth)
+SIGAP Lampung v3.1 — Backend Flask (SQLite3 Database)
 Sistem Informasi Pengelolaan Sampah Provinsi Lampung
 =====================================================
-Roboflow AI Integration + REST API + Multi-page Dashboard
+Roboflow AI Integration + REST API + Multi-page + SQLite3
 """
 
 import os
@@ -12,6 +12,7 @@ from datetime import datetime
 from flask import (Flask, render_template, jsonify, request,
                    redirect, url_for, session)
 from flask_cors import CORS
+import database as db
 
 # ── Konfigurasi ────────────────────────────────────────────────────────────────
 PORT               = int(os.environ.get("PORT", 5011))
@@ -27,13 +28,10 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "sigap-lampung-s3cr3t-2024")
 CORS(app)
 
-# ── Simple Auth ────────────────────────────────────────────────────────────────
-USERS = {
-    "admin":    {"password": "admin123",    "name": "Administrator",    "role": "Super Admin",    "initials": "AD"},
-    "gubernur": {"password": "lampung2024", "name": "Gubernur Lampung", "role": "Administrator",  "initials": "GU"},
-    "operator": {"password": "operator123", "name": "Operator CCTV",   "role": "Operator",       "initials": "OP"},
-}
+# ── Initialize Database on startup ────────────────────────────────────────────
+db.setup_database()
 
+# ── Auth decorator ─────────────────────────────────────────────────────────────
 def login_required(f):
     @functools.wraps(f)
     def decorated(*args, **kwargs):
@@ -42,122 +40,43 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-# ── Gambar dummy: foto sampah dari Wikimedia Commons (public domain / CC) ─────
-WASTE_IMAGES = {
-    "full": [
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Garbage_piled_up_on_the_streets_of_a_city.jpg/640px-Garbage_piled_up_on_the_streets_of_a_city.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:Garbage_piled_up_on_the_streets_of_a_city.jpg",
-            "caption": "Tumpukan sampah penuh di jalan kota",
-        },
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Jakarta_garbage.jpg/640px-Jakarta_garbage.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:Jakarta_garbage.jpg",
-            "caption": "Sampah menumpuk — Jakarta",
-        },
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Waste_dumped_on_a_road_in_India.jpg/640px-Waste_dumped_on_a_road_in_India.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:Waste_dumped_on_a_road_in_India.jpg",
-            "caption": "Sampah di tepi jalan raya",
-        },
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Rubbish_in_East_Jakarta.jpg/640px-Rubbish_in_East_Jakarta.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:Rubbish_in_East_Jakarta.jpg",
-            "caption": "Penuh — Jakarta Timur",
-        },
-    ],
-    "scattered": [
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Litter_on_the_ground.jpg/640px-Litter_on_the_ground.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:Litter_on_the_ground.jpg",
-            "caption": "Sampah berserakan di trotoar",
-        },
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Litter_-_San_Gabriel_River%2C_California.jpg/640px-Litter_-_San_Gabriel_River%2C_California.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:Litter_-_San_Gabriel_River,_California.jpg",
-            "caption": "Sampah berserakan di tepi sungai",
-        },
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/LitteringHighway.jpg/640px-LitteringHighway.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:LitteringHighway.jpg",
-            "caption": "Sampah di tepi jalan raya",
-        },
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/Plastic_waste_in_Asia.jpg/640px-Plastic_waste_in_Asia.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:Plastic_waste_in_Asia.jpg",
-            "caption": "Plastik berserakan — Asia",
-        },
-    ],
-    "clean": [
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Clean_street_Singapore.jpg/640px-Clean_street_Singapore.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:Clean_street_Singapore.jpg",
-            "caption": "Jalan bersih — Singapura",
-        },
-        {
-            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Clean_alley_Kyoto_Japan.jpg/640px-Clean_alley_Kyoto_Japan.jpg",
-            "src": "https://commons.wikimedia.org/wiki/File:Clean_alley_Kyoto_Japan.jpg",
-            "caption": "Gang bersih — Kyoto, Jepang",
-        },
-    ],
-}
-
-def get_img(status: str, idx: int = 0) -> dict:
-    arr = WASTE_IMAGES.get(status, WASTE_IMAGES["clean"])
-    return arr[idx % len(arr)]
-
-# ── Data Lokasi ────────────────────────────────────────────────────────────────
-LOCATIONS = [
-    {"id": 1,  "name": "Pasar Bambu Kuning",      "kec": "Enggal",             "lat": -5.3965, "lng": 105.2669, "status": "full",      "time": "07:42", "officer": "Agus S."},
-    {"id": 2,  "name": "Jl. Raden Intan",         "kec": "T. Karang Pusat",    "lat": -5.3890, "lng": 105.2601, "status": "full",      "time": "07:55", "officer": "Budi H."},
-    {"id": 3,  "name": "Pasar Rajabasa",          "kec": "Rajabasa",           "lat": -5.3637, "lng": 105.2425, "status": "full",      "time": "08:10", "officer": "Dedi K."},
-    {"id": 4,  "name": "Jl. Teuku Umar",          "kec": "Kedaton",            "lat": -5.3982, "lng": 105.2521, "status": "scattered", "time": "08:22", "officer": "Eko P."},
-    {"id": 5,  "name": "Pasar Tugu",              "kec": "T. Karang Timur",    "lat": -5.3701, "lng": 105.2805, "status": "full",      "time": "08:35", "officer": "Feri W."},
-    {"id": 6,  "name": "Jl. Kartini",             "kec": "T. Karang Barat",    "lat": -5.4018, "lng": 105.2558, "status": "clean",     "time": "09:01", "officer": "Gunawan"},
-    {"id": 7,  "name": "Pasar Way Halim",         "kec": "Way Halim",          "lat": -5.3805, "lng": 105.2720, "status": "scattered", "time": "09:12", "officer": "Hendra T."},
-    {"id": 8,  "name": "Jl. Sultan Agung",        "kec": "Kedaton",            "lat": -5.3925, "lng": 105.2610, "status": "clean",     "time": "09:25", "officer": "Irwan D."},
-    {"id": 9,  "name": "TPA Bakung",              "kec": "Teluk Betung Barat", "lat": -5.4623, "lng": 105.2218, "status": "full",      "time": "09:31", "officer": "Joko S."},
-    {"id": 10, "name": "Pasar Pasir Gintung",     "kec": "T. Karang Pusat",    "lat": -5.3834, "lng": 105.2643, "status": "scattered", "time": "09:48", "officer": "Karyono"},
-    {"id": 11, "name": "Jl. Pangeran Diponegoro", "kec": "Enggal",             "lat": -5.4055, "lng": 105.2627, "status": "full",      "time": "10:02", "officer": "Lutfi A."},
-    {"id": 12, "name": "Terminal Rajabasa",       "kec": "Rajabasa",           "lat": -5.3580, "lng": 105.2398, "status": "scattered", "time": "10:15", "officer": "Mahmud"},
-    {"id": 13, "name": "Pasar Koga",              "kec": "Kedaton",            "lat": -5.3861, "lng": 105.2541, "status": "clean",     "time": "10:22", "officer": "Nasrul"},
-    {"id": 14, "name": "Jl. Ahmad Yani",          "kec": "T. Karang Pusat",    "lat": -5.3912, "lng": 105.2684, "status": "scattered", "time": "10:30", "officer": "Osman R."},
-    {"id": 15, "name": "Pasar Kangkung",          "kec": "Bumi Waras",         "lat": -5.4312, "lng": 105.2834, "status": "full",      "time": "10:44", "officer": "Purnomo"},
-    {"id": 16, "name": "Jl. Wolter Monginsidi",   "kec": "Teluk Betung Utara", "lat": -5.4256, "lng": 105.2785, "status": "clean",     "time": "10:55", "officer": "Rahmat"},
-    {"id": 17, "name": "Pasar Tamin",             "kec": "T. Karang Pusat",    "lat": -5.3978, "lng": 105.2715, "status": "scattered", "time": "11:01", "officer": "Sugeng"},
-    {"id": 18, "name": "Jl. Hayam Wuruk",         "kec": "Enggal",             "lat": -5.4007, "lng": 105.2632, "status": "full",      "time": "11:14", "officer": "Teguh W."},
-]
-
-CCTV_LIST = [
-    {"id": "CAM-01", "name": "Pasar Bambu Kuning",      "kec": "Enggal",          "status": "full",      "online": True},
-    {"id": "CAM-02", "name": "Jl. Raden Intan",         "kec": "T. Karang Pusat", "status": "scattered", "online": True},
-    {"id": "CAM-03", "name": "Pasar Rajabasa",          "kec": "Rajabasa",        "status": "clean",     "online": True},
-    {"id": "CAM-04", "name": "Jl. Teuku Umar",          "kec": "Kedaton",         "status": "scattered", "online": True},
-    {"id": "CAM-05", "name": "Pasar Tugu",              "kec": "T. Karang Timur", "status": "full",      "online": True},
-    {"id": "CAM-06", "name": "Jl. Kartini",             "kec": "T. Karang Barat", "status": "clean",     "online": False},
-    {"id": "CAM-07", "name": "TPA Bakung",              "kec": "Teluk Betung Barat","status": "full",    "online": True},
-    {"id": "CAM-08", "name": "Pasar Pasir Gintung",     "kec": "T. Karang Pusat", "status": "scattered", "online": True},
-]
-
-TREND_DATA = {
-    "labels":    ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"],
-    "full":      [8, 11, 9, 14, 10, 13, 12],
-    "scattered": [15, 18, 14, 20, 17, 19, 19],
-    "clean":     [25, 19, 25, 14, 21, 16, 17],
-}
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
-def _summary(locations):
-    return {
-        "full":       sum(1 for l in locations if l["status"] == "full"),
-        "scattered":  sum(1 for l in locations if l["status"] == "scattered"),
-        "clean":      sum(1 for l in locations if l["status"] == "clean"),
-        "total_cctv": 48,
-    }
+def _get_img(status, idx=0):
+    """Get waste image from database."""
+    return db.get_waste_image(status, idx)
+
 
 def _with_image(loc, idx):
-    img = get_img(loc["status"], idx)
+    """Add image info to location dict."""
+    img = _get_img(loc["status"], idx)
     return {**loc, "img_url": img["url"], "img_src": img["src"], "img_caption": img["caption"]}
+
+
+def _loc_to_api(loc):
+    """Convert DB location row to API format."""
+    return {
+        "id":      loc["id"],
+        "name":    loc["name"],
+        "kec":     loc["kecamatan"],
+        "lat":     loc["latitude"],
+        "lng":     loc["longitude"],
+        "status":  loc["status"],
+        "time":    loc["detection_time"] or "",
+        "officer": loc["officer"] or "",
+    }
+
+
+def _cam_to_api(cam):
+    """Convert DB camera row to API format."""
+    return {
+        "id":     cam["cam_id"],
+        "name":   cam["name"],
+        "kec":    cam["kecamatan"] or "",
+        "status": cam["status"],
+        "online": bool(cam["is_online"]),
+    }
+
 
 def _run_roboflow(image_path: str) -> dict:
     try:
@@ -171,10 +90,10 @@ def _run_roboflow(image_path: str) -> dict:
         )
         return {"success": True, "result": result}
     except ImportError:
-        statuses   = ["full", "scattered", "clean"]
+        statuses    = ["full", "scattered", "clean"]
         mock_status = random.choice(statuses)
-        label_map  = {"full": "Rubbish_Full_Load", "scattered": "Rubbish_Scatterred", "clean": "Container"}
-        img        = get_img(mock_status, random.randint(0, 3))
+        label_map   = {"full": "Rubbish_Full_Load", "scattered": "Rubbish_Scatterred", "clean": "Container"}
+        img         = _get_img(mock_status, random.randint(0, 3))
         return {
             "success": True, "mock": True,
             "result": {
@@ -189,7 +108,11 @@ def _run_roboflow(image_path: str) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-# ── Page Routes ────────────────────────────────────────────────────────────────
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PAGE ROUTES
+# ══════════════════════════════════════════════════════════════════════════════
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if "user" in session:
@@ -198,45 +121,155 @@ def login():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
-        user = USERS.get(username)
-        if user and user["password"] == password:
-            session["user"] = username
-            session["name"] = user["name"]
-            session["role"] = user["role"]
+        user = db.verify_user(username, password)
+        if user:
+            session["user"]     = user["username"]
+            session["name"]     = user["name"]
+            session["role"]     = user["role"]
             session["initials"] = user["initials"]
             return redirect(url_for("dashboard"))
         error = "Username atau password salah!"
     return render_template("login.html", error=error)
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    error = None
+    success = None
+    if request.method == "POST":
+        name     = request.form.get("name", "").strip()
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        confirm  = request.form.get("confirm_password", "")
+        role     = request.form.get("role", "Operator")
+
+        if not name or not username or not password:
+            error = "Semua field wajib diisi!"
+        elif len(username) < 3:
+            error = "Username minimal 3 karakter!"
+        elif len(password) < 6:
+            error = "Password minimal 6 karakter!"
+        elif password != confirm:
+            error = "Password dan konfirmasi tidak cocok!"
+        else:
+            user_id = db.create_user(username, password, name, role)
+            if user_id:
+                success = f"Akun '{username}' berhasil dibuat! Silakan login."
+            else:
+                error = f"Username '{username}' sudah digunakan!"
+
+    return render_template("register.html", error=error, success=success)
+
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
+
 @app.route("/")
 @login_required
 def dashboard():
     return render_template("dashboard.html", active="dashboard")
+
 
 @app.route("/cctv")
 @login_required
 def cctv_page():
     return render_template("cctv.html", active="cctv")
 
+
 @app.route("/peta")
 @login_required
 def peta_page():
     return render_template("peta.html", active="peta")
+
 
 @app.route("/laporan")
 @login_required
 def laporan_page():
     return render_template("laporan.html", active="laporan")
 
-# ── API Routes ─────────────────────────────────────────────────────────────────
+
+@app.route("/petugas")
+@login_required
+def petugas_page():
+    return render_template("petugas.html", active="petugas")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# API ROUTES — Officers & WA Alert
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/officers")
+def api_officers():
+    officers = db.get_officers()
+    active   = sum(1 for o in officers if o["is_active"])
+    return jsonify({
+        "officers": officers,
+        "total":    len(officers),
+        "active":   active,
+        "inactive": len(officers) - active,
+    })
+
+
+@app.route("/api/officers", methods=["POST"])
+def api_create_officer():
+    body = request.get_json(silent=True) or {}
+    if not body.get("name") or not body.get("phone"):
+        return jsonify({"success": False, "error": "name and phone required"}), 400
+    officer_id = db.create_officer(
+        body["name"], body["phone"],
+        body.get("kecamatan", ""), body.get("position", "Petugas Lapangan")
+    )
+    return jsonify({"success": True, "id": officer_id})
+
+
+@app.route("/api/officers/<int:officer_id>", methods=["PUT"])
+def api_update_officer(officer_id):
+    body = request.get_json(silent=True) or {}
+    db.update_officer(
+        officer_id,
+        name=body.get("name"), phone=body.get("phone"),
+        kecamatan=body.get("kecamatan"), position=body.get("position"),
+        is_active=body.get("is_active"),
+    )
+    return jsonify({"success": True})
+
+
+@app.route("/api/officers/<int:officer_id>", methods=["DELETE"])
+def api_delete_officer(officer_id):
+    db.delete_officer(officer_id)
+    return jsonify({"success": True})
+
+
+@app.route("/api/wa-alert", methods=["POST"])
+def api_wa_alert():
+    """Log a WhatsApp alert as sent."""
+    body = request.get_json(silent=True) or {}
+    officer_id = body.get("officer_id")
+    phone      = body.get("phone", "")
+    message    = body.get("message", "")
+    if not phone or not message:
+        return jsonify({"success": False, "error": "phone and message required"}), 400
+    db.log_wa_alert(officer_id, phone, message)
+    return jsonify({"success": True})
+
+
+@app.route("/api/wa-alert/logs")
+def api_wa_logs():
+    limit = int(request.args.get("limit", 50))
+    logs  = db.get_wa_alert_logs(limit)
+    return jsonify({"logs": logs, "count": len(logs)})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# API ROUTES — Read
+# ══════════════════════════════════════════════════════════════════════════════
+
 @app.route("/api/stats")
 def api_stats():
-    summary = _summary(LOCATIONS)
+    summary = db.get_location_summary()
     return jsonify({
         "total_cctv":    summary["total_cctv"],
         "critical":      summary["full"],
@@ -246,69 +279,230 @@ def api_stats():
         "timestamp":     datetime.now().isoformat(),
     })
 
+
 @app.route("/api/locations")
 def api_locations():
     status_filter = request.args.get("status")
-    data = LOCATIONS
-    if status_filter:
-        data = [l for l in data if l["status"] == status_filter]
-    data_with_img = [_with_image(loc, i) for i, loc in enumerate(data)]
+    locations = db.get_locations(status_filter)
+    api_locs  = [_loc_to_api(loc) for loc in locations]
+    data_with_img = [_with_image(loc, i) for i, loc in enumerate(api_locs)]
     return jsonify({"locations": data_with_img, "count": len(data_with_img)})
+
 
 @app.route("/api/alerts")
 def api_alerts():
-    limit = int(request.args.get("limit", 12))
+    limit      = int(request.args.get("limit", 12))
     label_map    = {"full": "Rubbish_Full_Load", "scattered": "Rubbish_Scatterred", "clean": "Container_Clean"}
     severity_map = {"full": "critical", "scattered": "warning", "clean": "normal"}
+
+    locations = db.get_locations()
     alerts = []
-    for i, loc in enumerate(LOCATIONS[:limit]):
-        img = get_img(loc["status"], i)
+    for i, loc in enumerate(locations[:limit]):
+        api_loc = _loc_to_api(loc)
+        img = _get_img(api_loc["status"], i)
         alerts.append({
-            "id":        loc["id"],
-            "name":      loc["name"],
-            "kec":       loc["kec"],
-            "status":    loc["status"],
-            "label":     label_map[loc["status"]],
-            "severity":  severity_map[loc["status"]],
-            "time":      loc["time"],
-            "officer":   loc["officer"],
-            "img_url":   img["url"],
-            "img_src":   img["src"],
+            "id":       api_loc["id"],
+            "name":     api_loc["name"],
+            "kec":      api_loc["kec"],
+            "status":   api_loc["status"],
+            "label":    label_map.get(api_loc["status"], "Unknown"),
+            "severity": severity_map.get(api_loc["status"], "normal"),
+            "time":     api_loc["time"],
+            "officer":  api_loc["officer"],
+            "img_url":  img["url"],
+            "img_src":  img["src"],
         })
-    return jsonify({"alerts": alerts, "new_count": sum(1 for a in alerts if a["severity"] == "critical")})
+    return jsonify({
+        "alerts":    alerts,
+        "new_count": sum(1 for a in alerts if a["severity"] == "critical"),
+    })
+
 
 @app.route("/api/cctv")
 def api_cctv():
+    cameras = db.get_cameras()
     cams = []
-    for i, cam in enumerate(CCTV_LIST):
-        img = get_img(cam["status"], i)
-        cams.append({**cam, "img_url": img["url"], "img_src": img["src"],
-                     "kec": cam.get("kec", "")})
-    return jsonify({"cameras": cams, "online": sum(1 for c in CCTV_LIST if c["online"])})
+    for i, cam in enumerate(cameras):
+        api_cam = _cam_to_api(cam)
+        img = _get_img(api_cam["status"], i)
+        cams.append({**api_cam, "img_url": img["url"], "img_src": img["src"]})
+    online_count = db.get_online_camera_count()
+    return jsonify({"cameras": cams, "online": online_count})
+
 
 @app.route("/api/trend")
 def api_trend():
-    return jsonify(TREND_DATA)
+    return jsonify(db.get_trend_data())
+
 
 @app.route("/api/report")
 def api_report():
-    summary = _summary(LOCATIONS)
+    summary      = db.get_location_summary()
+    locations    = db.get_locations()
     handling_map = {"full": "Belum ditangani", "scattered": "Dalam proses", "clean": "Selesai"}
-    detail = [{**_with_image(loc, i), "handling": handling_map[loc["status"]]} for i, loc in enumerate(LOCATIONS)]
+
+    detail = []
+    for i, loc in enumerate(locations):
+        api_loc = _loc_to_api(loc)
+        img_loc = _with_image(api_loc, i)
+        img_loc["handling"] = handling_map.get(api_loc["status"], "—")
+        detail.append(img_loc)
+
     return jsonify({
         "date":    datetime.now().strftime("%A, %d %B %Y"),
         "summary": summary,
         "detail":  detail,
         "ai_recommendation": (
-            "Berdasarkan pemantauan 48 titik CCTV di seluruh Provinsi Lampung, "
+            "Berdasarkan pemantauan {} titik CCTV di seluruh Provinsi Lampung, "
             "sistem AI mendeteksi peningkatan volume sampah sebesar 23% dibanding hari sebelumnya. "
             "Titik paling kritis: Pasar Bambu Kuning (Kec. Enggal) dan Jl. Raden Intan "
             "(Kec. Tanjung Karang Pusat). "
             "Rekomendasi: mobilisasi 2 unit armada tambahan ke zona utara sebelum pukul 10.00 WIB. "
             "Tingkat akurasi model: 96.4%."
-        ),
-        "model_info": {"workspace": ROBOFLOW_WORKSPACE, "workflow_id": ROBOFLOW_WORKFLOW, "accuracy": 96.4},
+        ).format(summary["total_cctv"]),
+        "model_info": {
+            "workspace":   ROBOFLOW_WORKSPACE,
+            "workflow_id": ROBOFLOW_WORKFLOW,
+            "accuracy":    96.4,
+        },
     })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# API ROUTES — Write (CRUD)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/locations", methods=["POST"])
+def api_create_location():
+    body = request.get_json(silent=True) or {}
+    required = ["name", "kecamatan", "lat", "lng"]
+    if not all(k in body for k in required):
+        return jsonify({"success": False, "error": "Missing: name, kecamatan, lat, lng"}), 400
+    loc_id = db.create_location(
+        body["name"], body["kecamatan"], body["lat"], body["lng"],
+        body.get("status", "clean"), body.get("officer", "")
+    )
+    return jsonify({"success": True, "id": loc_id})
+
+
+@app.route("/api/locations/<int:loc_id>", methods=["PUT"])
+def api_update_location(loc_id):
+    body = request.get_json(silent=True) or {}
+    status  = body.get("status")
+    officer = body.get("officer")
+    if not status:
+        return jsonify({"success": False, "error": "status required"}), 400
+    db.update_location_status(loc_id, status, officer)
+    return jsonify({"success": True})
+
+
+@app.route("/api/locations/<int:loc_id>", methods=["DELETE"])
+def api_delete_location(loc_id):
+    db.delete_location(loc_id)
+    return jsonify({"success": True})
+
+
+@app.route("/api/cctv", methods=["POST"])
+def api_create_camera():
+    body = request.get_json(silent=True) or {}
+    required = ["cam_id", "name"]
+    if not all(k in body for k in required):
+        return jsonify({"success": False, "error": "Missing: cam_id, name"}), 400
+    cam_id = db.create_camera(
+        body["cam_id"], body["name"], body.get("kecamatan", ""),
+        body.get("status", "clean"), body.get("is_online", 1),
+        body.get("location_id")
+    )
+    return jsonify({"success": True, "id": cam_id})
+
+
+@app.route("/api/cctv/<cam_id>", methods=["PUT"])
+def api_update_camera(cam_id):
+    body = request.get_json(silent=True) or {}
+    db.update_camera_status(
+        cam_id,
+        status=body.get("status"),
+        is_online=body.get("is_online"),
+    )
+    return jsonify({"success": True})
+
+
+@app.route("/api/users")
+def api_users():
+    users = db.get_all_users()
+    return jsonify({"users": users, "count": len(users)})
+
+
+@app.route("/api/users/<int:user_id>", methods=["DELETE"])
+def api_delete_user(user_id):
+    db.delete_user(user_id)
+    return jsonify({"success": True})
+
+
+@app.route("/api/waste-images")
+def api_waste_images():
+    status_filter = request.args.get("status")
+    images = db.get_waste_images(status_filter)
+    return jsonify({"images": images, "count": len(images)})
+
+
+@app.route("/api/waste-images", methods=["POST"])
+def api_add_waste_image():
+    body = request.get_json(silent=True) or {}
+    if "status" not in body or "filename" not in body:
+        return jsonify({"success": False, "error": "status and filename required"}), 400
+    status   = body["status"]
+    filename = body["filename"]
+    caption  = body.get("caption", f"{status} — {filename}")
+    url      = f"/static/images/waste/{status}/{filename}"
+    conn = db.get_db()
+    try:
+        conn.execute(
+            "INSERT INTO waste_images (status, url, source_url, caption) VALUES (?,?,?,?)",
+            (status, url, "", caption)
+        )
+        conn.commit()
+        img_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    finally:
+        conn.close()
+    return jsonify({"success": True, "id": img_id, "url": url})
+
+
+@app.route("/api/waste-images/scan")
+def api_scan_images():
+    """Scan local folders and sync images to database."""
+    import glob
+    base_dir = os.path.join(app.static_folder, "images", "waste")
+    added = 0
+    for status in ["full", "scattered", "clean"]:
+        folder = os.path.join(base_dir, status)
+        if not os.path.isdir(folder):
+            continue
+        existing = db.get_waste_images(status)
+        existing_urls = {img["url"] for img in existing}
+        for filepath in sorted(glob.glob(os.path.join(folder, "*"))):
+            ext = os.path.splitext(filepath)[1].lower()
+            if ext not in (".jpg", ".jpeg", ".png", ".webp"):
+                continue
+            filename = os.path.basename(filepath)
+            url = f"/static/images/waste/{status}/{filename}"
+            if url not in existing_urls:
+                conn = db.get_db()
+                try:
+                    conn.execute(
+                        "INSERT INTO waste_images (status, url, source_url, caption) VALUES (?,?,?,?)",
+                        (status, url, "", f"{status} — {filename}")
+                    )
+                    conn.commit()
+                    added += 1
+                finally:
+                    conn.close()
+    return jsonify({"success": True, "added": added, "message": f"{added} new images synced"})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# API ROUTES — AI Inference
+# ══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/api/infer", methods=["POST"])
 def api_infer():
@@ -325,24 +519,46 @@ def api_infer():
         return jsonify(_run_roboflow(body["image_path"]))
     return jsonify({"success": False, "error": "Tidak ada file atau image_path."}), 400
 
+
 @app.route("/api/health")
 def api_health():
+    summary = db.get_location_summary()
+    users   = db.get_all_users()
+    cameras = db.get_cameras()
     return jsonify({
-        "status": "ok", "app": "SIGAP Lampung", "version": "3.0.0",
+        "status":    "ok",
+        "app":       "SIGAP Lampung",
+        "version":   "3.1.0",
+        "database":  "SQLite3",
         "timestamp": datetime.now().isoformat(),
-        "roboflow": {"api_url": ROBOFLOW_URL, "workspace": ROBOFLOW_WORKSPACE, "workflow_id": ROBOFLOW_WORKFLOW},
+        "counts": {
+            "users":     len(users),
+            "locations": summary["full"] + summary["scattered"] + summary["clean"],
+            "cameras":   len(cameras),
+            "total_cctv": summary["total_cctv"],
+        },
+        "roboflow": {
+            "api_url":     ROBOFLOW_URL,
+            "workspace":   ROBOFLOW_WORKSPACE,
+            "workflow_id": ROBOFLOW_WORKFLOW,
+        },
     })
 
-# ── Entry Point ────────────────────────────────────────────────────────────────
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ENTRY POINT
+# ══════════════════════════════════════════════════════════════════════════════
+
 if __name__ == "__main__":
     print(f"""
   ╔══════════════════════════════════════════════════════╗
-  ║   SIGAP Lampung v3.0  — Flask Backend                ║
+  ║   SIGAP Lampung v3.1  — Flask + SQLite3              ║
   ║   Sistem Informasi Pengelolaan Sampah                ║
   ╠══════════════════════════════════════════════════════╣
   ║   http://localhost:{PORT}                               
-  ║   DEBUG  : {DEBUG}                                    
-  ║   PORT   : {PORT}   (ubah via env PORT=xxxx)           
+  ║   Database : sigap.db (SQLite3)                      
+  ║   DEBUG    : {DEBUG}                                    
+  ║   PORT     : {PORT}                                      
   ╚══════════════════════════════════════════════════════╝
     """)
     app.run(host=HOST, port=PORT, debug=DEBUG)

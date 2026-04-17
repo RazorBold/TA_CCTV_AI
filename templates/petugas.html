@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Management Petugas{% endblock %}
+{% block page_title %}Management Petugas{% endblock %}
+{% block page_sub %}Data Petugas Lapangan · WhatsApp Alert{% endblock %}
+
+{% block content %}
+<!-- Stats Bar -->
+<div class="cctv-stats-bar">
+  <div class="cctv-stat-chip online">
+    <div class="cctv-stat-dot"></div>
+    <span id="petugas-active">—</span> Aktif
+  </div>
+  <div class="cctv-stat-chip offline">
+    <div class="cctv-stat-dot"></div>
+    <span id="petugas-inactive">—</span> Non-Aktif
+  </div>
+  <div class="cctv-stat-chip" style="color:var(--accent);border-color:var(--accent-border)">
+    <span id="petugas-total">—</span> Total Petugas
+  </div>
+</div>
+
+<!-- Action Bar -->
+<div class="laporan-toolbar">
+  <div class="laporan-date">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+    Daftar Petugas Lapangan — Provinsi Lampung
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn-primary" onclick="openAddPetugasModal()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Tambah Petugas
+    </button>
+    <button class="btn-outline" onclick="sendBulkWAAlert()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/>
+      </svg>
+      Kirim Alert WA Semua
+    </button>
+  </div>
+</div>
+
+<!-- Petugas Table -->
+<div class="panel glass">
+  <div class="panel-header">
+    <div class="panel-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+      </svg>
+      Daftar Petugas
+    </div>
+    <span class="panel-badge blue" id="petugas-count-badge">— Petugas</span>
+  </div>
+  <div style="overflow-x:auto;max-height:500px;overflow-y:auto">
+    <table class="report-table" id="petugas-table">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Nama</th>
+          <th>No. WhatsApp</th>
+          <th>Kecamatan</th>
+          <th>Jabatan</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="petugas-body">
+        <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px">Memuat data petugas...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- WA Alert History -->
+<div class="panel glass" style="margin-top:20px">
+  <div class="panel-header">
+    <div class="panel-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/>
+      </svg>
+      Riwayat Alert WhatsApp
+    </div>
+    <span class="panel-badge green" id="wa-log-count">— Terkirim</span>
+  </div>
+  <div style="overflow-x:auto;max-height:300px;overflow-y:auto">
+    <table class="report-table">
+      <thead>
+        <tr><th>Waktu</th><th>Petugas</th><th>No. WA</th><th>Pesan</th><th>Status</th></tr>
+      </thead>
+      <tbody id="wa-log-body">
+        <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">Belum ada riwayat alert</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ADD/EDIT PETUGAS MODAL -->
+<div class="modal-overlay" id="petugas-modal">
+  <div class="modal glass" style="max-width:520px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="petugas-modal-title">➕ Tambah Petugas Baru</div>
+        <div class="modal-sub">Isi data petugas lapangan</div>
+      </div>
+      <button class="modal-close" onclick="closePetugasModal()">×</button>
+    </div>
+
+    <form id="petugas-form" onsubmit="savePetugas(event)">
+      <input type="hidden" id="pf-id" value="">
+      <div class="form-group-petugas">
+        <label class="form-label-p">Nama Lengkap</label>
+        <input class="form-input-p" type="text" id="pf-name" placeholder="Nama lengkap petugas" required>
+      </div>
+      <div class="form-group-petugas">
+        <label class="form-label-p">Nomor WhatsApp</label>
+        <input class="form-input-p" type="text" id="pf-phone" placeholder="08xxxxxxxxxx" required>
+        <div class="form-hint">Format: 08xx atau 628xx (otomatis dikonversi)</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group-petugas">
+          <label class="form-label-p">Kecamatan</label>
+          <input class="form-input-p" type="text" id="pf-kec" placeholder="Nama kecamatan">
+        </div>
+        <div class="form-group-petugas">
+          <label class="form-label-p">Jabatan</label>
+          <select class="form-input-p" id="pf-position">
+            <option value="Petugas Lapangan">Petugas Lapangan</option>
+            <option value="Koordinator Wilayah">Koordinator Wilayah</option>
+            <option value="Supir Armada">Supir Armada</option>
+            <option value="Petugas TPA">Petugas TPA</option>
+            <option value="Supervisor">Supervisor</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button type="submit" class="btn-primary" style="flex:1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+          Simpan
+        </button>
+        <button type="button" class="btn-outline" onclick="closePetugasModal()">Batal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- WA ALERT MODAL -->
+<div class="modal-overlay" id="wa-modal">
+  <div class="modal glass" style="max-width:520px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📱 Kirim Alert WhatsApp</div>
+        <div class="modal-sub" id="wa-modal-sub">Kirim pesan ke petugas</div>
+      </div>
+      <button class="modal-close" onclick="closeWAModal()">×</button>
+    </div>
+    <input type="hidden" id="wa-officer-id" value="">
+    <input type="hidden" id="wa-officer-phone" value="">
+
+    <div class="form-group-petugas">
+      <label class="form-label-p">Pesan Alert</label>
+      <textarea class="form-input-p" id="wa-message" rows="4" style="resize:vertical">🚨 *ALERT SIGAP LAMPUNG*
+
+Terdeteksi tumpukan sampah kritis di area Anda.
+Mohon segera ditindaklanjuti.
+
+📍 Lokasi: [Nama Lokasi]
+⏰ Waktu: [Waktu Deteksi]
+📊 Status: FULL LOAD
+
+_Dikirim otomatis oleh Sistem SIGAP Lampung_</textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn-wa" onclick="sendWAAlert()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.116.549 4.106 1.513 5.834L.06 23.487l5.79-1.474A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.785A9.77 9.77 0 016.383 20.1l-.39-.232-3.437.876.917-3.347-.254-.404A9.785 9.785 0 1112 21.785z"/>
+        </svg>
+        Buka WhatsApp
+      </button>
+      <button class="btn-primary" onclick="logWAAlert()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/></svg>
+        Log sebagai Terkirim
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => { loadPetugasPage(); });
+</script>
+{% endblock %}
