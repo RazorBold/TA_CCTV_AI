@@ -1,0 +1,4 @@
+flask>=3.0.0
+flask-cors>=4.0.0
+inference-sdk>=0.9.0   # Roboflow inference client
+python-dotenv>=1.0.0   # optional: load .env file
