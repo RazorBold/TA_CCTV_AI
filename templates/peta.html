@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Peta Persebaran{% endblock %}
+{% block page_title %}Peta Persebaran{% endblock %}
+{% block page_sub %}Sebaran Titik Sampah · Provinsi Lampung{% endblock %}
+
+{% block content %}
+<!-- Peta Stats -->
+<div class="cctv-stats-bar">
+  <div class="cctv-stat-chip full-chip">
+    <span id="peta-full-count">—</span> Titik Kritis
+  </div>
+  <div class="cctv-stat-chip scattered-chip">
+    <span id="peta-scattered-count">—</span> Berserakan
+  </div>
+  <div class="cctv-stat-chip clean-chip">
+    <span id="peta-clean-count">—</span> Bersih
+  </div>
+</div>
+
+<!-- Full Map + Location List -->
+<div class="peta-grid">
+  <!-- Full Page Map -->
+  <div class="panel glass peta-map-panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        Peta Interaktif — Provinsi Lampung
+      </div>
+      <div style="display:flex;gap:6px">
+        <span class="panel-badge red peta-map-badge">—</span>
+        <span class="panel-badge yellow peta-map-badge">—</span>
+        <span class="panel-badge green peta-map-badge">—</span>
+      </div>
+    </div>
+    <div id="peta-map-container">
+      <div id="peta-map"></div>
+      <div class="map-legend">
+        <div class="legend-title">Keterangan</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Full Load / Kritis</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Berserakan</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Normal / Bersih</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location List -->
+  <div class="panel glass peta-list-panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        Daftar Lokasi
+      </div>
+    </div>
+    <div class="peta-location-list" id="peta-location-list">
+      <div class="skeleton-list">
+        <div class="skeleton-item"></div><div class="skeleton-item"></div>
+        <div class="skeleton-item"></div><div class="skeleton-item"></div>
+        <div class="skeleton-item"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => { loadPetaPage(); });
+</script>
+{% endblock %}

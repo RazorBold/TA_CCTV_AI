@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_sub %}Pengelolaan Sampah Real-Time · Provinsi Lampung{% endblock %}
+
+{% block content %}
+<!-- STAT CARDS -->
+<div class="stats-row" id="stats-row">
+  <div class="stat-card" data-color="blue" style="--delay:0">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+      </svg>
+    </div>
+    <div class="stat-label">Total CCTV Aktif</div>
+    <div class="stat-value" id="total-cctv">48</div>
+    <div class="stat-change up">↑ 3 terpasang bulan ini</div>
+  </div>
+
+  <div class="stat-card" data-color="red" style="--delay:1">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    </div>
+    <div class="stat-label">Titik Kritis (Full)</div>
+    <div class="stat-value" id="critical-count">—</div>
+    <div class="stat-change down">↑ 4 dari kemarin</div>
+  </div>
+
+  <div class="stat-card" data-color="orange" style="--delay:2">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+    </div>
+    <div class="stat-label">Sampah Berserakan</div>
+    <div class="stat-value" id="scattered-count">—</div>
+    <div class="stat-change down">↑ 2 dari kemarin</div>
+  </div>
+
+  <div class="stat-card" data-color="green" style="--delay:3">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 11l3 3L22 4"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+      </svg>
+    </div>
+    <div class="stat-label">Kondisi Normal</div>
+    <div class="stat-value" id="normal-count">—</div>
+    <div class="stat-change up">↓ 6 dari kemarin</div>
+  </div>
+
+  <div class="stat-card" data-color="cyan" style="--delay:4">
+    <div class="stat-card-glow"></div>
+    <div class="stat-card-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+        <polyline points="17 6 23 6 23 12"/>
+      </svg>
+    </div>
+    <div class="stat-label">Respons Petugas</div>
+    <div class="stat-value">94<span style="font-size:16px;font-weight:600">%</span></div>
+    <div class="stat-change up">↑ 2% dari minggu lalu</div>
+  </div>
+</div>
+
+<!-- MAIN GRID: Map + Alerts -->
+<div class="main-grid">
+  <!-- MAP -->
+  <div class="panel glass" data-aos="fade-up">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+        Peta Persebaran Sampah
+      </div>
+      <div style="display:flex;gap:6px">
+        <span class="panel-badge red map-badge">— Kritis</span>
+        <span class="panel-badge yellow map-badge">— Sedang</span>
+        <span class="panel-badge green map-badge">— Aman</span>
+      </div>
+    </div>
+    <div id="map-container">
+      <div id="map"></div>
+      <div class="map-legend">
+        <div class="legend-title">Keterangan</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Full Load / Kritis</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Berserakan</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Normal / Bersih</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERTS -->
+  <div class="panel glass" data-aos="fade-up" style="--delay:1">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        Notifikasi Real-Time
+      </div>
+      <span class="panel-badge red" id="alert-count">— Baru</span>
+    </div>
+    <div class="alerts-list" id="alerts-list">
+      <div class="skeleton-list">
+        <div class="skeleton-item"></div><div class="skeleton-item"></div>
+        <div class="skeleton-item"></div><div class="skeleton-item"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM GRID -->
+<div class="bottom-grid">
+  <!-- FOTO CCTV -->
+  <div class="panel glass">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+        </svg>
+        Foto Deteksi AI — CCTV
+      </div>
+      <span class="panel-badge green cctv-online-count">— Online</span>
+    </div>
+    <div class="photo-grid" id="photo-grid">
+      <div class="skeleton-photo"></div><div class="skeleton-photo"></div>
+      <div class="skeleton-photo"></div><div class="skeleton-photo"></div>
+    </div>
+  </div>
+
+  <!-- CHART + AI -->
+  <div class="panel glass">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Tren 7 Hari Terakhir
+      </div>
+    </div>
+    <div class="chart-area">
+      <canvas id="trendChart"></canvas>
+    </div>
+    <div class="chart-legend">
+      <div class="legend-chip"><div class="legend-chip-dot" style="background:#ef4444"></div>Full Load</div>
+      <div class="legend-chip"><div class="legend-chip-dot" style="background:#f59e0b"></div>Berserakan</div>
+      <div class="legend-chip"><div class="legend-chip-dot" style="background:#10b981"></div>Bersih</div>
+    </div>
+    <div class="divider"></div>
+    <div style="padding:0 20px 16px">
+      <div class="ai-panel">
+        <div class="ai-panel-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Rekomendasi AI · Roboflow
+        </div>
+        <div class="ai-typing" id="ai-text">Memuat analisis...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LAPORAN TERBARU -->
+  <div class="panel glass">
+    <div class="panel-header">
+      <div class="panel-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        Laporan Terbaru
+      </div>
+      <a href="{{ url_for('laporan_page') }}" class="btn-outline">Lihat Semua</a>
+    </div>
+    <div style="overflow-x:auto;max-height:340px;overflow-y:auto">
+      <table class="report-table">
+        <thead>
+          <tr><th>Foto</th><th>Lokasi</th><th>Status AI</th><th>Waktu</th><th>Petugas</th></tr>
+        </thead>
+        <tbody id="report-body">
+          <tr><td colspan="5" style="text-align:center;color:var(--text-muted);font-family:var(--font-mono);padding:20px">Memuat...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LAPORAN -->
+<div class="modal-overlay" id="modal">
+  <div class="modal glass">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">📋 Laporan Harian Sampah</div>
+        <div class="modal-sub" id="report-date">Provinsi Lampung — Memuat...</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="report-summary-grid">
+      <div class="report-stat-card"><div class="report-stat-val" id="modal-full-count" style="color:var(--danger)">—</div><div class="report-stat-label">Titik Full Load</div></div>
+      <div class="report-stat-card"><div class="report-stat-val" id="modal-scattered-count" style="color:var(--warning)">—</div><div class="report-stat-label">Titik Berserakan</div></div>
+      <div class="report-stat-card"><div class="report-stat-val" id="modal-clean-count" style="color:var(--success)">—</div><div class="report-stat-label">Titik Normal</div></div>
+    </div>
+    <div class="report-section-title">📸 Foto Deteksi Terkini</div>
+    <div class="modal-photos" id="modal-photos"></div>
+    <div class="report-section-title">📍 Detail Semua Titik Pemantauan</div>
+    <div style="overflow-x:auto;max-height:300px;overflow-y:auto;margin-bottom:20px">
+      <table class="report-table">
+        <thead><tr><th>No</th><th>Foto</th><th>Lokasi</th><th>Kecamatan</th><th>Deteksi AI</th><th>Waktu</th><th>Penanganan</th></tr></thead>
+        <tbody id="modal-report-body"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px">Memuat...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="divider"></div>
+    <div class="report-section-title">🤖 Ringkasan Analisis AI</div>
+    <div class="ai-panel">
+      <div class="ai-panel-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/></svg>Model: Roboflow · aicctv-6waqg</div>
+      <div class="ai-typing" id="modal-ai-text">Memuat analisis AI...</div>
+    </div>
+    <button class="print-btn" onclick="window.print()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+      </svg>
+      Cetak / Export PDF
+    </button>
+  </div>
+</div>
+{% endblock %}

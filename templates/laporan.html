@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Laporan Harian{% endblock %}
+{% block page_title %}Laporan Harian{% endblock %}
+{% block page_sub %}Rekapitulasi Pemantauan Sampah{% endblock %}
+
+{% block content %}
+<!-- Summary Cards -->
+<div class="laporan-summary" id="laporan-summary">
+  <div class="report-stat-card glass">
+    <div class="report-stat-val" id="lap-full-count" style="color:var(--danger)">—</div>
+    <div class="report-stat-label">Titik Full Load</div>
+  </div>
+  <div class="report-stat-card glass">
+    <div class="report-stat-val" id="lap-scattered-count" style="color:var(--warning)">—</div>
+    <div class="report-stat-label">Titik Berserakan</div>
+  </div>
+  <div class="report-stat-card glass">
+    <div class="report-stat-val" id="lap-clean-count" style="color:var(--success)">—</div>
+    <div class="report-stat-label">Titik Normal</div>
+  </div>
+  <div class="report-stat-card glass">
+    <div class="report-stat-val" style="color:var(--accent)">48</div>
+    <div class="report-stat-label">Total CCTV</div>
+  </div>
+</div>
+
+<!-- Date + Print -->
+<div class="laporan-toolbar">
+  <div class="laporan-date" id="laporan-date">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    Memuat tanggal...
+  </div>
+  <button class="btn-primary" onclick="window.print()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+    </svg>
+    Cetak / Export PDF
+  </button>
+</div>
+
+<!-- Photo Strip -->
+<div class="panel glass">
+  <div class="panel-header">
+    <div class="panel-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+      Foto Deteksi Terkini
+    </div>
+  </div>
+  <div class="modal-photos" id="lap-photos" style="padding:14px"></div>
+</div>
+
+<!-- Full Report Table -->
+<div class="panel glass" style="margin-top:20px">
+  <div class="panel-header">
+    <div class="panel-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      Detail Semua Titik Pemantauan
+    </div>
+  </div>
+  <div style="overflow-x:auto;max-height:500px;overflow-y:auto">
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>No</th><th>Foto</th><th>Lokasi</th><th>Kecamatan</th>
+          <th>Deteksi AI</th><th>Waktu</th><th>Petugas</th><th>Penanganan</th>
+        </tr>
+      </thead>
+      <tbody id="lap-report-body">
+        <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:20px">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- AI Recommendation -->
+<div class="panel glass" style="margin-top:20px">
+  <div class="panel-header">
+    <div class="panel-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Ringkasan Analisis AI
+    </div>
+  </div>
+  <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="ai-panel">
+      <div class="ai-panel-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <circle cx="12" cy="12" r="10"/>
+        </svg>
+        Model: Roboflow Custom Workflow
+      </div>
+      <div class="ai-typing" id="lap-ai-text">Memuat analisis AI...</div>
+    </div>
+    <div class="chart-area" style="height:200px">
+      <canvas id="lapDonutChart"></canvas>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => { loadLaporanPage(); });
+</script>
+{% endblock %}

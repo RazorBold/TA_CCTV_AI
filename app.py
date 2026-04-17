@@ -1,14 +1,16 @@
 """
-SIGAP Lampung — Backend Flask (Light Theme)
+SIGAP Lampung v3.0 — Backend Flask (Multi-page + Auth)
 Sistem Informasi Pengelolaan Sampah Provinsi Lampung
 =====================================================
-Roboflow AI Integration + REST API
+Roboflow AI Integration + REST API + Multi-page Dashboard
 """
 
 import os
 import random
+import functools
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request
+from flask import (Flask, render_template, jsonify, request,
+                   redirect, url_for, session)
 from flask_cors import CORS
 
 # ── Konfigurasi ────────────────────────────────────────────────────────────────
@@ -19,12 +21,28 @@ ROBOFLOW_API_KEY   = os.environ.get("ROBOFLOW_API_KEY",     "AA0MfTcjJZp1dQzv2mf
 ROBOFLOW_WORKSPACE = os.environ.get("ROBOFLOW_WORKSPACE",   "aicctv-6waqg")
 ROBOFLOW_WORKFLOW  = os.environ.get("ROBOFLOW_WORKFLOW_ID", "custom-workflow")
 ROBOFLOW_URL       = os.environ.get("ROBOFLOW_API_URL",     "https://serverless.roboflow.com")
+WA_ALERT           = "ZMLM-2BA8"
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "sigap-lampung-s3cr3t-2024")
 CORS(app)
 
+# ── Simple Auth ────────────────────────────────────────────────────────────────
+USERS = {
+    "admin":    {"password": "admin123",    "name": "Administrator",    "role": "Super Admin",    "initials": "AD"},
+    "gubernur": {"password": "lampung2024", "name": "Gubernur Lampung", "role": "Administrator",  "initials": "GU"},
+    "operator": {"password": "operator123", "name": "Operator CCTV",   "role": "Operator",       "initials": "OP"},
+}
+
+def login_required(f):
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        if "user" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
 # ── Gambar dummy: foto sampah dari Wikimedia Commons (public domain / CC) ─────
-# URL ini adalah gambar nyata yang bisa langsung di-load di browser
 WASTE_IMAGES = {
     "full": [
         {
@@ -111,10 +129,14 @@ LOCATIONS = [
 ]
 
 CCTV_LIST = [
-    {"id": "CAM-01", "name": "Pasar Bambu Kuning", "status": "full",      "online": True},
-    {"id": "CAM-02", "name": "Jl. Raden Intan",    "status": "scattered", "online": True},
-    {"id": "CAM-03", "name": "Rajabasa",            "status": "clean",     "online": True},
-    {"id": "CAM-07", "name": "TPA Bakung",          "status": "full",      "online": True},
+    {"id": "CAM-01", "name": "Pasar Bambu Kuning",      "kec": "Enggal",          "status": "full",      "online": True},
+    {"id": "CAM-02", "name": "Jl. Raden Intan",         "kec": "T. Karang Pusat", "status": "scattered", "online": True},
+    {"id": "CAM-03", "name": "Pasar Rajabasa",          "kec": "Rajabasa",        "status": "clean",     "online": True},
+    {"id": "CAM-04", "name": "Jl. Teuku Umar",          "kec": "Kedaton",         "status": "scattered", "online": True},
+    {"id": "CAM-05", "name": "Pasar Tugu",              "kec": "T. Karang Timur", "status": "full",      "online": True},
+    {"id": "CAM-06", "name": "Jl. Kartini",             "kec": "T. Karang Barat", "status": "clean",     "online": False},
+    {"id": "CAM-07", "name": "TPA Bakung",              "kec": "Teluk Betung Barat","status": "full",    "online": True},
+    {"id": "CAM-08", "name": "Pasar Pasir Gintung",     "kec": "T. Karang Pusat", "status": "scattered", "online": True},
 ]
 
 TREND_DATA = {
@@ -167,11 +189,51 @@ def _run_roboflow(image_path: str) -> dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-# ── Routes ─────────────────────────────────────────────────────────────────────
-@app.route("/")
-def index():
-    return render_template("index.html")
+# ── Page Routes ────────────────────────────────────────────────────────────────
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if "user" in session:
+        return redirect(url_for("dashboard"))
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        user = USERS.get(username)
+        if user and user["password"] == password:
+            session["user"] = username
+            session["name"] = user["name"]
+            session["role"] = user["role"]
+            session["initials"] = user["initials"]
+            return redirect(url_for("dashboard"))
+        error = "Username atau password salah!"
+    return render_template("login.html", error=error)
 
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+@app.route("/")
+@login_required
+def dashboard():
+    return render_template("dashboard.html", active="dashboard")
+
+@app.route("/cctv")
+@login_required
+def cctv_page():
+    return render_template("cctv.html", active="cctv")
+
+@app.route("/peta")
+@login_required
+def peta_page():
+    return render_template("peta.html", active="peta")
+
+@app.route("/laporan")
+@login_required
+def laporan_page():
+    return render_template("laporan.html", active="laporan")
+
+# ── API Routes ─────────────────────────────────────────────────────────────────
 @app.route("/api/stats")
 def api_stats():
     summary = _summary(LOCATIONS)
@@ -220,7 +282,8 @@ def api_cctv():
     cams = []
     for i, cam in enumerate(CCTV_LIST):
         img = get_img(cam["status"], i)
-        cams.append({**cam, "img_url": img["url"], "img_src": img["src"]})
+        cams.append({**cam, "img_url": img["url"], "img_src": img["src"],
+                     "kec": cam.get("kec", "")})
     return jsonify({"cameras": cams, "online": sum(1 for c in CCTV_LIST if c["online"])})
 
 @app.route("/api/trend")
@@ -265,7 +328,7 @@ def api_infer():
 @app.route("/api/health")
 def api_health():
     return jsonify({
-        "status": "ok", "app": "SIGAP Lampung", "version": "2.0.0",
+        "status": "ok", "app": "SIGAP Lampung", "version": "3.0.0",
         "timestamp": datetime.now().isoformat(),
         "roboflow": {"api_url": ROBOFLOW_URL, "workspace": ROBOFLOW_WORKSPACE, "workflow_id": ROBOFLOW_WORKFLOW},
     })
@@ -274,7 +337,7 @@ def api_health():
 if __name__ == "__main__":
     print(f"""
   ╔══════════════════════════════════════════════════════╗
-  ║   SIGAP Lampung v2.0  — Flask Backend                ║
+  ║   SIGAP Lampung v3.0  — Flask Backend                ║
   ║   Sistem Informasi Pengelolaan Sampah                ║
   ╠══════════════════════════════════════════════════════╣
   ║   http://localhost:{PORT}                               

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Monitor CCTV{% endblock %}
+{% block page_title %}Monitor CCTV{% endblock %}
+{% block page_sub %}Pemantauan Kamera Real-Time · 48 Unit{% endblock %}
+
+{% block content %}
+<!-- CCTV Stats Bar -->
+<div class="cctv-stats-bar">
+  <div class="cctv-stat-chip online">
+    <div class="cctv-stat-dot"></div>
+    <span id="cctv-online-total">—</span> Online
+  </div>
+  <div class="cctv-stat-chip offline">
+    <div class="cctv-stat-dot"></div>
+    <span id="cctv-offline-total">—</span> Offline
+  </div>
+  <div class="cctv-stat-chip full-chip">
+    <span id="cctv-full-total">—</span> Full Load
+  </div>
+  <div class="cctv-stat-chip scattered-chip">
+    <span id="cctv-scattered-total">—</span> Berserakan
+  </div>
+  <div class="cctv-stat-chip clean-chip">
+    <span id="cctv-clean-total">—</span> Bersih
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="cctv-filter-bar">
+  <button class="filter-btn active" data-filter="all" onclick="filterCCTV('all', this)">Semua</button>
+  <button class="filter-btn" data-filter="full" onclick="filterCCTV('full', this)">🔴 Full Load</button>
+  <button class="filter-btn" data-filter="scattered" onclick="filterCCTV('scattered', this)">🟡 Berserakan</button>
+  <button class="filter-btn" data-filter="clean" onclick="filterCCTV('clean', this)">🟢 Bersih</button>
+</div>
+
+<!-- CCTV Grid -->
+<div class="cctv-grid" id="cctv-grid">
+  <div class="skeleton-photo" style="aspect-ratio:16/10"></div>
+  <div class="skeleton-photo" style="aspect-ratio:16/10"></div>
+  <div class="skeleton-photo" style="aspect-ratio:16/10"></div>
+  <div class="skeleton-photo" style="aspect-ratio:16/10"></div>
+  <div class="skeleton-photo" style="aspect-ratio:16/10"></div>
+  <div class="skeleton-photo" style="aspect-ratio:16/10"></div>
+</div>
+
+<!-- AI Detection Summary -->
+<div class="panel glass" style="margin-top:24px">
+  <div class="panel-header">
+    <div class="panel-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Status Deteksi AI — Ringkasan
+    </div>
+  </div>
+  <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="chart-area" style="height:250px">
+      <canvas id="cctvDonutChart"></canvas>
+    </div>
+    <div class="ai-panel" style="align-self:center">
+      <div class="ai-panel-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <circle cx="12" cy="12" r="10"/>
+        </svg>
+        Analisis AI CCTV
+      </div>
+      <div class="ai-typing" id="cctv-ai-text">
+        Sistem AI mendeteksi kondisi sampah dari seluruh kamera CCTV yang terpasang. 
+        Pemantauan berjalan 24/7 dengan tingkat akurasi model 96.4%. Update otomatis setiap 30 detik.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => { loadCCTVPage(); });
+</script>
+{% endblock %}
